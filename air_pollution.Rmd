@@ -1,0 +1,154 @@
+---
+title: "air_pollution"
+output: html_document
+---
+
+#load library
+```{r}
+library("foreign")
+#install.packages("readODS")
+library("readODS")
+```
+
+#read air quality obs and predictions
+```{r}
+#聿欣's annual data and the predicted value of each town
+pred<-read_ods("C:/Users/gis/Downloads/complete_prediction_5(聿欣).xlsx.ods")
+summary(pred)
+head(pred)
+
+#pred<-read.csv("C:/Users/gis/Downloads/complete_prediction_5.csv",header=F)
+
+#pred2<-pred[-1,]
+# pred2$V3<-as.numeric(as.character(pred2$V3))
+# pred2$V14<-as.numeric(as.character(pred2$V14))
+# pred2$V41<-as.numeric(as.character(pred2$V41))
+# summary(pred2$V3)
+# head(pred2)
+```
+
+#the correct town shp
+```{r}
+#downloaded from https://data.gov.tw/dataset/7441
+#C:\Users\gis\Documents\TAO\air_pollution/mapdata201911260954
+
+TOWN_MOI<-read.dbf("C:/Users/gis/Documents/TAO/air_pollution/mapdata201911260954/TOWN_MOI_1081121.dbf")
+TOWN_MOI$TOWNCODE <- as.numeric(as.character(TOWN_MOI$TOWNCODE))
+t<-as.data.frame(table(TOWN_MOI$TOWNCODE))
+
+```
+
+#read the air pollution IDs for each town
+```{r}
+#use join in ArcGIS to get the air pollution IDs for each town
+#C:\Users\gis\Documents\TAO\air_pollution\town_pollution_id.shp
+county_pollution_id<-read.dbf("C:/Users/gis/Documents/TAO/air_pollution/county_pollution_id.dbf")
+ 
+  town_shp<-read_ods("C:/Users/gis/Documents/TAO/air_pollution/鄉鎮界WGS84_SHP/鄉鎮界_WGS84.ods")
+  colnames(  town_shp)<-c("townid",      "towncode",    "countyname", "townname")
+  county_pollution_id<-merge(county_pollution_id,town_shp,by  = "towncode" )
+
+county_pollution_id<-county_pollution_id2[,c("towncode","townid.y","countyname.y","townname.y","ID" )]
+colnames(county_pollution_id)<-c("towncode","townid","countyname","townname","ID")
+head(county_pollution_id)
+county_pollution_id[county_pollution_id$townname=="蘇澳鎮",]
+county_pollution_id4<-county_pollution_id[!duplicated(county_pollution_id[,c( "towncode","ID")]),]
+county_pollution_id4[county_pollution_id4$townname=="蘇澳鎮",]
+county_pollution_id4<-county_pollution_id4[,c("towncode","countyname","townname","ID")]
+write.csv(county_pollution_id4[,c("towncode","countyname","townname","ID")],file="C:/Users/gis/Documents/TAO/air_pollution/town_id.csv")
+```
+
+#get the air pollution value for each town
+```{r}
+# dim(pred)
+# dim(county_pollution_id)
+# dim(pred[!pred$ID %in% county_pollution_id$ID,])
+# dim(county_pollution_id[!county_pollution_id$ID %in% pred$ID,])
+
+#county_pollution_id2<-unique(county_pollution_id[,c("towncode")])
+
+pred_county_pollution_id<-merge(pred ,county_pollution_id4,by = "ID")
+dim(pred_county_pollution_id)
+
+head(pred_county_pollution_id)
+# #mean predicted value for each town in each year
+#1000203     宜蘭縣   蘇澳鎮
+for (y in c(2006:2015)) {
+pred_county_pollution_id_year_mean<-aggregate(pred_county_pollution_id[pred_county_pollution_id$year==y,]$`predict(lm_all_inter_complete_4, yt_data_1)` ,       by=   list(pred_county_pollution_id[pred_county_pollution_id$year==y,]$towncode), mean)
+
+colnames(pred_county_pollution_id_year_mean)<-c("towncode","predict(lm_all_inter_complete_4, yt_data_1)")
+pred_county_pollution_id_year_mean$towncode<-as.numeric(as.character(pred_county_pollution_id_year_mean$towncode))
+county_pollution_id5<-county_pollution_id4[,c("towncode","countyname","townname" )]
+
+county_pollution_id5<-county_pollution_id5[!duplicated(county_pollution_id5[,c("towncode","countyname","townname")]),]
+dim(county_pollution_id5)
+head(county_pollution_id5)
+county_pollution_id5$towncode<-as.numeric(as.character(county_pollution_id5$towncode))
+pred_county_pollution_id_year_mean2<-merge(county_pollution_id5,pred_county_pollution_id_year_mean,by="towncode")
+
+colnames(pred_county_pollution_id_year_mean2)<-c("towncode","countyname","townname","predict")
+   write.csv(pred_county_pollution_id_year_mean2,file=paste("C:/Users/gis/Documents/TAO/air_pollution/town_pred_",y,".csv"))
+                                                                                    
+}
+
+colnames(pred_county_pollution_id)<-c(colnames(pred_county_pollution_id)[1:90],"predict",colnames(pred_county_pollution_id)[92:94])
+
+for (y in c(2006:2015)) {
+pred_county_pollution_id_year_mean<-aggregate(pred_county_pollution_id[pred_county_pollution_id$year==y,c(17:91)] ,by=   list(pred_county_pollution_id[pred_county_pollution_id$year==y,]$towncode), mean)
+
+colnames(pred_county_pollution_id_year_mean)<-c("towncode",colnames(pred_county_pollution_id[17:91]))
+
+pred_county_pollution_id_year_mean$towncode<-as.numeric(as.character(pred_county_pollution_id_year_mean$towncode))
+county_pollution_id5<-county_pollution_id4[,c("towncode","countyname","townname" )]
+
+county_pollution_id5<-county_pollution_id5[!duplicated(county_pollution_id5[,c("towncode","countyname","townname")]),]
+#dim(county_pollution_id5)
+#head(county_pollution_id5)
+county_pollution_id5$towncode<-as.numeric(as.character(county_pollution_id5$towncode))
+pred_county_pollution_id_year_mean2<-merge(county_pollution_id5,pred_county_pollution_id_year_mean,by="towncode")
+
+#colnames(pred_county_pollution_id_year_mean2)<-c("towncode","countyname","townname","predict")
+   write.csv(pred_county_pollution_id_year_mean2,file=paste("C:/Users/gis/Documents/TAO/air_pollution/Town_air_pollution_predict/town_pred_",y,".csv"))
+                                                                                    
+}
+
+#  pred_county_pollution_id_mean<-aggregate(pred_county_pollution_id$`predict(lm_all_inter_complete_4, yt_data_1)` ,       by=   list(pred_county_pollution_id$townid ), mean)
+#   pred_county_pollution_id_mean2<-aggregate(pred_county_pollution_id$`predict(lm_all_inter_complete_4, yt_data_1)` ,       by=   list(pred_county_pollution_id$towncode  ), mean)
+#   #pred_county_pollution_id_mean2$Group.1<- (as.character(pred_county_pollution_id_mean2$Group.1))
+#  # pred_county_pollution_id_mean2<-merge(pred_county_pollution_id_mean2,town_shp,by.x=pred_county_pollution_id_mean2$Group.1,town_shp$`towncode,C,7`)
+#   write.csv(pred_county_pollution_id_mean2,file="C:/Users/gis/Documents/TAO/air_pollution/pred2_county_pollution_id_mean2.csv")
+# # head(pred_county_pollution_id_mean)
+# #t<-data.frame(table(pred_county_pollution_id_mean$Group.1))
+#  dim(pred_county_pollution_id_mean)
+```
+
+
+```{r}
+pred2_county_pollution_id<-merge(pred2,county_pollution_id ,by.x= "V3",by.y= "ID"
+                                 #,all=F
+                                 )
+dim(pred2)
+dim(county_pollution_id)
+dim(pred2_county_pollution_id)
+ pred2_county_pollution_id_mean<-aggregate(pred2_county_pollution_id$V41,       by=   list(pred2_county_pollution_id$townid),
+mean)
+  pred2_county_pollution_id_mean$cate<-"<16"
+    pred2_county_pollution_id_mean[pred2_county_pollution_id_mean$x<17  &   pred2_county_pollution_id_mean$x>=16,]$cate<-"16-17"
+    pred2_county_pollution_id_mean[ pred2_county_pollution_id_mean$x>=17,]$cate<-">17"
+  
+
+    
+  write.csv(pred2_county_pollution_id_mean,file="C:/Users/gis/Documents/TAO/air_pollution/pred2_county_pollution_id_mean.csv")
+for (y in c(2006:2015)) {
+#  pred2_county_pollution_id[pred2_county_pollution_id$V2==y,]
+# pred2_county_pollution_id_mean<-aggregate(pred2_county_pollution_id$V41,       by=   list(pred2_county_pollution_id$townid),mean)
+  
+#  write.csv(pred2_county_pollution_id[pred2_county_pollution_id$V2==y,],file=paste("C:/Users/gis/Documents/TAO/air_pollution/",y,".csv"))
+}
+  save(pred2_county_pollution_id,file="C:/Users/gis/Documents/TAO/air_pollution/pred2_county_pollution_id.Rdata")
+```
+
+
+
+
+
