@@ -1,0 +1,134 @@
+---
+title: "asthma"
+output: html_document
+---
+
+#load packages
+```{r}
+library("foreign")
+#install.packages("readxl")
+library("readxl")
+```
+
+```{r}
+asthma3<-read_excel("C:/Users/gis/Documents/TAO/air_pollution/asthma_北高.xlsx"#,head=F
+                    )
+
+boxplot.stats(asthma3$visits)
+
+#par(new=T)
+plot(asthma3$visits,asthma3$rate,xlim = c(0,8000),ylim=c(0,1),xlab = "Visits",ylab = "Rate")
+
+#par(new=T)
+#plot(asthma3[asthma3$visits>1,]$visits,asthma3[asthma3$visits>1,]$rate,xlim = c(0,8000),ylim=c(0,1),col="green")
+par(new=T)
+plot(asthma3[asthma3$visits>354,]$visits,asthma3[asthma3$visits>354,]$rate,xlim = c(0,8000),ylim=c(0,1),col="red",xlab = NA,ylab =NA)
+#par(new=T)
+#plot(asthma3[asthma3$visits>1726,]$visits,asthma3[asthma3$visits>1726,]$rate,xlim = c(0,8000),ylim=c(0,1),col="green")
+#par(new=T)
+#plot(asthma3[asthma3$visits>3738,]$visits,asthma3[asthma3$visits>3738,]$rate,xlim = c(0,8000),ylim=c(0,1)     )
+#(new=T)
+
+
+```
+
+
+```{r}
+
+# summary(asthma3[asthma3$visits<100 ,]$rate)
+# summary(lm(asthma3$rate~asthma3$visits))
+# summary(lm(asthma3[asthma3$visits>1000 ,]$rate~asthma3[asthma3$visits>1000 ,]$visits))
+
+asthma3$citytown<-paste(asthma3$city,asthma3$town)
+town<-read_excel("C:/Users/gis/Documents/TAO/air_pollution/boundary.xlsx"
+                 )
+town$citytown<-paste(town$countyname,town$townname)
+head(town)
+#taipei_kao_town<-town[town$townid %in% asthma3$towncode...3,]
+head(asthma3[asthma3$town=="松山區",]$citytown)
+
+ town[town$townname=="松山區",]$citytown
+  asthma_by_town<-aggregate(asthma3$asthma,by=list(asthma3$town ),FUN=sum)
+   write.csv( asthma_by_town, file="C:/Users/gis/Documents/TAO/air_pollution/asthma_by_town.csv")
+   
+     asthma_visit_by_town<-aggregate(asthma3$visits ,by=list(asthma3$town ),FUN=sum)
+     
+     asthma_casevisit_by_town<-merge( asthma_by_town,asthma_visit_by_town,by=  "Group.1")
+     asthma_casevisit_by_town$rate<-asthma_casevisit_by_town$x.x/asthma_casevisit_by_town$x.y
+   write.csv( asthma_casevisit_by_town, file="C:/Users/gis/Documents/TAO/air_pollution/asthma_casevisit_by_town.csv")
+   
+ asthma_by_citytown<-aggregate(asthma3$asthma,by=list(asthma3$citytown),FUN=sum)
+ head(asthma_by_citytown)
+ write.csv( asthma_by_citytown, file="C:/Users/gis/Documents/TAO/air_pollution/asthma_by_citytown.csv")
+ 
+```
+
+
+```{r}
+asthma<-read.csv("C:/Users/gis/Documents/TAO/air_pollution/asthma2.csv",head=F)
+head(asthma)
+asthma1<-asthma[-1,]
+head(asthma1)
+asthma1$V4<-as.Date(asthma1$V4,format="%Y%m%d")
+
+asthma1$V5<-as.numeric(as.character(asthma1$V5))
+asthma1$V9<-as.numeric(as.character(asthma1$V9))
+
+asthma1$ym<-format(asthma1$V4,"%Y-%m")
+head(asthma1)
+
+plot(asthma1$V4,asthma1$V9)
+plot(asthma1$V4,asthma1$V5)
+plot(asthma1[asthma1$V1==63000,]$V4,asthma1[asthma1$V1==63000,]$V5,ylim = c(0,200))
+plot(asthma1[asthma1$V1==64000,]$V4,asthma1[asthma1$V1==64000,]$V5,ylim = c(0,200))
+#plot(asthma1[asthma1$V1==63000,]$V4,asthma1[asthma1$V1==63000,]$V9,main = "Taipei" )
+#plot(asthma1[asthma1$V1==64000,]$V4,asthma1[asthma1$V1==64000,]$V9,main = "Kaohsiung" )
+jpeg(filename = "C:/Users/gis/Documents/TAO/air_pollution/Taipei_CasesVisits.jpg")
+boxplot(asthma1[asthma1$V1==63000,]$V9~asthma1[asthma1$V1==63000,]$ym,main = "Taipei",xlab = "Year-Month",ylab="Cases/Visits")
+dev.off()
+jpeg(filename = "C:/Users/gis/Documents/TAO/air_pollution/Kaohsiung_CasesVisits.jpg")
+boxplot(asthma1[asthma1$V1==64000,]$V9~asthma1[asthma1$V1==64000,]$ym,main = "Kaohsiung",xlab = "Year-Month",ylab="Cases/Visits" )
+dev.off()
+
+
+```
+
+```{r}
+town<-read.dbf("C:/Users/gis/Documents/TAO/air_pollution/boundary.dbf")
+write.csv(town,"C:/Users/gis/Documents/TAO/air_pollution/boundary.csv")
+```
+
+
+```{r}
+asthma1$month<-months(asthma1$V4)
+asthma1_Taipei_mo<- aggregate(asthma1[asthma1$V1==63000,]$V5,by=list(asthma1[asthma1$V1==63000,]$month),FUN = sum)
+boxplot(asthma1_Taipei_mo$x~asthma1_Taipei_mo$Group.1)
+```
+
+
+```{r}
+
+head(asthma1)
+boxplot(asthma1[asthma1$V1==63000,]$V5~asthma1[asthma1$V1==63000,]$month,main = "Taipei")
+boxplot(asthma1[asthma1$V1==64000,]$V5~asthma1[asthma1$V1==64000,]$month,main = "Kaohsiung")
+#plot(asthma1[asthma1$V1==63000,]$month,asthma1[asthma1$V1==63000,]$V9,main = "Taipei" )
+#plot(asthma1[asthma1$V1==64000,]$month,asthma1[asthma1$V1==64000,]$V9,main = "Kaohsiung" )
+boxplot(asthma1[asthma1$V1==63000,]$V9~asthma1[asthma1$V1==63000,]$month,main = "Taipei")
+boxplot(asthma1[asthma1$V1==64000,]$V9~asthma1[asthma1$V1==64000,]$month,main = "Kaohsiung")
+```
+
+
+```{r}
+asthma1_case<-aggregate(asthma1$V5 ,       by=   list(asthma1$V2),sum)
+asthma1_case$Group.1<- (as.character(asthma1_case$Group.1))
+write.csv(asthma1_case,file= "C:/Users/gis/Documents/TAO/air_pollution/asthma1_case_towncode.csv")
+
+
+```
+
+
+```{r}
+load("C:/Users/gis/Documents/TAO/air_pollution/pred2_county_pollution_id.Rdata")
+pred2_county_pollution_id
+```
+
