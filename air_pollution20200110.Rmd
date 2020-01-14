@@ -1,0 +1,109 @@
+---
+title: "air_pollution"
+output: html_document
+---
+
+#load library
+```{r}
+library("foreign")
+#install.packages("readODS")
+library("readODS")
+#install.packages("benford.analysis") 
+library("benford.analysis")
+library("readxl")
+```
+
+#read air quality obs and predictions
+```{r}
+#聿欣's annual data and the predicted value of each town
+pred<- read_excel("C:/Users/gis/Documents/TAO/air_pollution/AOD+TEPA (劉聿欣)/聿欣_data/complete_prediction_5(聿欣).xlsx")
+summary(pred)
+head(pred)
+
+```
+
+#town shp
+```{r}
+TOWN_MOI2<-read.dbf("C:/Users/gis/Documents/TAO/air_pollution/mapdata201911260954/TOWN_MOI_1081121.dbf")
+TOWN_MOI2$TOWNID<- (as.character(TOWN_MOI2$TOWNID))
+TOWN_MOI2$TOWNCODE<-as.character(TOWN_MOI2$TOWNCODE)
+TOWN_MOI2$COUNTYNAME<-as.character(TOWN_MOI2$COUNTYNAME)
+TOWN_MOI2$TOWNNAME<-as.character(TOWN_MOI2$TOWNNAME)
+TOWN_MOI2$COUNTYID<-as.character(TOWN_MOI2$COUNTYID)
+TOWN_MOI2$COUNTYCODE<-as.character(TOWN_MOI2$COUNTYCODE)
+Encoding(TOWN_MOI2$COUNTYNAME)<-"UTF-8"
+Encoding(TOWN_MOI2$TOWNNAME)<-"UTF-8"
+TOWN_MOI2
+```
+
+#read the air pollution IDs for each town
+```{r}
+#use spatial join in QGIS to get the air pollution IDs for each town
+#C:\Users\gis\Documents\TAO\air_pollution\town_pollution_id.shp
+town_pollution_id<-read.dbf("C:/Users/gis/Documents/TAO/air_pollution/mapdata201911260954/grid_join_town.dbf")
+town_pollution_id$TOWNCODE<-as.character(town_pollution_id$TOWNCODE)
+town_pollution_id$COUNTYCODE<-as.character(town_pollution_id$COUNTYCODE)
+town_pollution_id$COUNTYNAME<-as.character(town_pollution_id$COUNTYNAME)
+town_pollution_id$TOWNNAME<-as.character(town_pollution_id$TOWNNAME)
+Encoding(town_pollution_id$COUNTYNAME )<-"UTF-8"
+Encoding(town_pollution_id$TOWNNAME )<-"UTF-8"
+town_pollution_id
+town_pollution_id2<-town_pollution_id[,c( "COUNTYNAME","TOWNNAME",  "TOWNID","TOWNCODE",   "TOWNENG","COUNTYID","COUNTYCODE","ID" )]
+head(town_pollution_id2)
+town_pollution_id3<-merge(town_pollution_id2,TOWN_MOI2,by = "TOWNCODE" )
+head(town_pollution_id3)
+```
+
+#get air pollution  for each town by air pollution ID
+```{r}
+pred_town_pollution_id<-merge(pred ,town_pollution_id3,by = "ID",all = F)
+
+dim(pred)
+dim(town_pollution_id3)
+dim(pred_town_pollution_id)
+head(pred_town_pollution_id)
+
+#df
+TOWNCODE<-c("")
+Mean<-c("")
+Year<-c("")
+df<-data.frame(TOWNCODE,Mean,Year)
+df$TOWNCODE<- (as.character(df$TOWNCODE))
+df$Mean<-as.numeric(as.character(df$Mean))
+df$Year<-as.numeric(as.character(df$Year))
+
+for (y in c(2006:2015)) 
+{
+pred_town_pollution_id_year_mean<-aggregate(pred_town_pollution_id[pred_town_pollution_id$year  ==y,c("predict(lm_all_inter_complete_4, yt_data_1)")] ,by=   list(pred_town_pollution_id[pred_town_pollution_id$year==y,]$TOWNCODE ), mean)
+
+colnames(pred_town_pollution_id_year_mean)<-c("TOWNCODE","Mean")
+
+pred_town_pollution_id_year_mean$Year<-as.numeric(y)
+df<-rbind(df,pred_town_pollution_id_year_mean)
+}
+colnames(df)<-c("TOWNCODE","PM2_5","Year")
+PM2_5<-df[-1,]
+write.csv(PM2_5,file = "C:/Users/gis/Documents/TAO/air_pollution/PM2_5.csv")
+```
+
+#MERGE WITH NDVI
+```{r}
+ndvi<-read.csv("C:/Users/gis/Documents/TAO/air_pollution/ndvi/ndvi_towncode.csv")
+ndvi$TOWNCODE<-as.numeric(as.character(ndvi$TOWNCODE))
+PM2_5$Year<-as.integer(PM2_5$Year)
+#PM2_5$TOWNCODE<-as.numeric(PM2_5$TOWNCODE)/10
+ndvi_pm<-merge(ndvi,PM2_5,by=c("TOWNCODE","Year"))
+```
+
+#merge with town info
+```{r}
+town_ndvi_pm<-merge(TOWN_MOI2,ndvi_pm,by="TOWNCODE")
+town_ndvi_pm<-town_ndvi_pm[,c("TOWNCODE","COUNTYNAME","TOWNNAME", "COUNTYCODE","Year","NDVI","PM2_5")]
+town_ndvi_pm_old2010<-town_ndvi_pm[town_ndvi_pm$Year==2010 ,]
+#town_ndvi_pm_old2010$TOWNCODE<-as.numeric(town_ndvi_pm_old2010$TOWNCODE)
+write.csv(town_ndvi_pm_old2010,file = "town_ndvi_pm_old2010.csv")
+colnames(town_ndvi_pm)<-c("TOWN_ID","COUNTY","TOWN","COUNTY_ID","Year","NDVI","PM2_5")
+town_ndvi_pm$CT_ID<-paste(town_ndvi_pm$COUNTY,town_ndvi_pm$TOWN,sep="")
+write.csv(town_ndvi_pm,file = "town_ndvi_pm.csv")
+```
+
