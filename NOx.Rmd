@@ -1,0 +1,37 @@
+---
+title: 'NOx'
+output: html_document
+---
+
+#packages
+```{r}
+library("readxl")
+```
+
+#read data  
+```{r}
+
+
+ap01 <- read_excel("D:/tao/air_pollution/No/ap2001_2016.xls"                )
+ap01$Date<-as.Date(ap01$Date,format = "%Y-%m-%d")
+air_stn<-read.csv("D:/tao/air_pollution/No/環保署下載資料202012014547/空氣品質測站基本資料.csv")
+```
+
+```{r}
+ap_stn_mean<-merge(ap01[,c("測站","NOx",     "NO",   "NO2")],air_stn,by.x= "測站",by.y= "測站名稱")
+
+```
+
+```{r}
+plot(ap_stn_mean[ap_stn_mean$空品區=="中部空品區",]$NOx,ap_stn_mean[ap_stn_mean$空品區=="中部空品區",]$NO2,ylim=c(0,300),xlim=c(0,300),main="中部空品區",xlab="NOx",ylab="NO2")
+abline(lm(ap_stn_mean[ap_stn_mean$空品區=="中部空品區",]$NO2~ap_stn_mean[ap_stn_mean$空品區=="中部空品區",]$NOx))
+
+plot(ap_stn_mean[ap_stn_mean$空品區=="北部空品區",]$NOx,ap_stn_mean[ap_stn_mean$空品區=="北部空品區",]$NO2,ylim=c(0,300),xlim=c(0,300),main="北部空品區",xlab="NOx",ylab="NO2")
+abline(lm(ap_stn_mean[ap_stn_mean$空品區=="北部空品區",]$NO2~ap_stn_mean[ap_stn_mean$空品區=="北部空品區",]$NOx))
+
+plot(ap_stn_mean[ap_stn_mean$空品區=="雲嘉南空品區",]$NOx,ap_stn_mean[ap_stn_mean$空品區=="雲嘉南空品區",]$NO2,ylim=c(0,300),xlim=c(0,300),main="雲嘉南空品區",xlab="NOx",ylab="NO2")
+abline(lm(ap_stn_mean[ap_stn_mean$空品區=="雲嘉南空品區",]$NO2~ap_stn_mean[ap_stn_mean$空品區=="雲嘉南空品區",]$NOx))
+
+```
+
+

@@ -1,0 +1,68 @@
+---
+title: 'NOx'
+output: html_document
+---
+
+#packages
+```{r}
+#library("readODS")
+library("readxl")
+```
+
+#read data (MAX 2003!!!!)
+```{r}
+
+#ap<-read.csv("C:/Users/gis/Documents/TAO/air_pollution/No/ap2001_2016.csv")
+#it took forever
+#ap2<-read_ods("C:/Users/gis/Documents/TAO/air_pollution/No/ap2001_2016.ods")
+#ap <- read_excel("C:/Users/gis/Documents/TAO/air_pollution/No/ap2014_2016.xls"              #  sheetIndex = 1                  )
+ap01 <- read_excel("D:/tao/air_pollution/No/ap2001_2016.xls"                )
+ap01$Date<-as.Date(ap01$Date,format = "%Y-%m-%d")
+air_stn<-read.csv("D:/tao/air_pollution/No/環保署下載資料202012014547/空氣品質測站基本資料.csv")
+```
+
+#03-15
+```{r}
+ap0315<-ap01[ap01$Date>=(as.Date("2003-01-01",format="%Y-%m-%d")) & ap01$Date<=(as.Date("2015-12-31",format="%Y-%m-%d")) ,]
+
+ap0315_mean<-aggregate(ap0315[!is.na(ap0315$NOx) ,c("NOx")],by=list(ap0315[!is.na(ap0315$NOx),]$測站),FUN="mean")
+
+ap0315_median<-aggregate(ap0315[!is.na(ap0315$NOx) ,c("NOx")],by=list(ap0315[!is.na(ap0315$NOx),]$測站),FUN="median")
+
+```
+
+#YEARLY
+```{r}
+for (yr in c(2003:2015)) {
+  ap01$yr<-format(ap01$Date,"%Y")
+ap_yr<-ap01[ap01$yr==as.character(yr),]
+  # ap_yr<-ap01[format(ap01$Date,"%Y")==as.character(yr),]
+}
+```
+
+
+```{r}
+ap0315_stn_mean<-merge(ap0315_mean,air_stn,by.x= "Group.1",by.y= "測站名稱")
+write.csv(ap0315_stn_mean,file="D:/tao/air_pollution/No/ap0315_stn_mean.csv")
+```
+
+```{r}
+ap_2014_2015<-ap[ap$Date<as.POSIXct("2016/01/01",format="%Y/%m/%d"),]
+dim(ap)
+dim(ap_2014_2015)
+```
+
+```{r}
+ap_2014_2015mean<-aggregate(ap_2014_2015[!is.na(ap_2014_2015$NOx) ,c("NOx")],by=list(ap_2014_2015[!is.na(ap_2014_2015$NOx),]$測站),FUN="mean")
+```
+
+```{r}
+air_stn<-read.csv("C:/Users/gis/Documents/TAO/air_pollution/No/環保署下載資料202012014547/空氣品質測站基本資料.csv")
+ap_2014_2015_stn_mean<-merge(ap_2014_2015mean,air_stn,by.x= "Group.1",by.y= "測站名稱")
+dim(ap_2014_2015_stn_mean)
+write.csv(ap_2014_2015_stn_mean,file="C:/Users/gis/Documents/TAO/air_pollution/No/ap_2014_2015_stn_mean.csv")
+```
+
+
+
+
